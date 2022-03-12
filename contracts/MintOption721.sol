@@ -17,13 +17,16 @@ contract MintOption721 is Ownable, ReentrancyGuard {
 
   address public paymentReceiver;
 
+  address public option;
+
+  address public item;
+
   struct Config {
     uint256 startTime;
     uint256 basicPrice;
     uint256 minPrice;
     uint256 discountPerTermUnit;
     uint256 termUnit;
-    address item;
   }
 
   /// roundId > configuration struct
@@ -36,8 +39,12 @@ contract MintOption721 is Ownable, ReentrancyGuard {
   mapping(uint256 => mapping(uint256 => bool)) public claimed;
 
   constructor(
+    address _item,
+    address _option,
     address _paymentReceiver
   ) {
+    item = _item;
+    option = _option;
     paymentReceiver = _paymentReceiver;
   }
 

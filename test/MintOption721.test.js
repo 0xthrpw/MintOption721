@@ -13,8 +13,8 @@ const { should } = require('chai').should();
 describe('/MOTG/ Mint Option Testing General', function () {
   let deployer, alice, bob, carol, dev;
   let addresses, recipients;
-  let Token721, MintOption721;
-  let token721, mintOption721;
+  let Option721, Token721, MintOption721;
+  let option721, token721, mintOption721;
 
 
   before(async () => {
@@ -27,6 +27,7 @@ describe('/MOTG/ Mint Option Testing General', function () {
     dev = { provider: signers[3].provider, signer: signers[3], address: addresses[3] };
 
     Token721 = await ethers.getContractFactory("Tiny721");
+    Option721 = await ethers.getContractFactory("Option721");
     //ERC20 = await ethers.getContractFactory("MockERC20");
     MintOption721 = await ethers.getContractFactory("MintOption721");
 
@@ -57,16 +58,25 @@ describe('/MOTG/ Mint Option Testing General', function () {
     );
     await token721.deployed();
 
+    option721 = await Option721.connect(deployer.signer).deploy(
+      NAME,
+      SYMBOL,
+      METADATA_URI,
+      CAP
+    );
+    await option721.deployed();
+
     let config = {
       startTime: START_TIME,
       basicPrice: ethers.utils.parseEther(START_PRICE),
       minPrice: ethers.utils.parseEther(REST_PRICE),
       discountPerTermUnit: ethers.utils.parseEther(DISCOUNT_PER_TERM),
-      termUnit: TERM_UNIT,
-      item: token721.address
+      termUnit: TERM_UNIT
     }
 
     mintOption721 = await MintOption721.connect(deployer.signer).deploy(
+      token721.address,
+      option721.address,
       deployer.address
     );
     await mintOption721.deployed();
