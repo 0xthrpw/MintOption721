@@ -10,12 +10,13 @@ error CannotUnderpayForMint();
 error RefundTransferFailed();
 error NotExercisableYet();
 error NotOptionOwner();
+error OptionAlreadyExercised();
 error ZeroPriceConfig();
 error ZeroPricePurchase();
 
 interface IOption721 {
   function mintOpt( uint256 amount, uint256 claimStamp, address recipient ) external;
-  function burn( uint256 tokenId ) external;
+  function lockTransfer( uint256 tokenId, bool state ) external;
   function exercisable( uint256 tokenId ) external returns ( uint256 );
   function ownerOf( uint256 id ) external returns ( address );
 }
@@ -54,6 +55,11 @@ contract MintOption721 is Ownable, ReentrancyGuard {
     option = _option;
     paymentReceiver = _paymentReceiver;
   }
+
+  event Exercised(
+    uint256 indexed tokenId,
+    address indexed user
+  );
 
   /**
 
@@ -126,28 +132,38 @@ contract MintOption721 is Ownable, ReentrancyGuard {
       if (!returned) { revert RefundTransferFailed(); }
     }
 
+    // Mint the item.
     ITiny721(item).mint_Qgo(msg.sender, _amount);
   }
 
   /**
 
   */
-  function exerciseOption ( uint256 _tokenId ) external {
+  function exerciseOption ( uint256 _round, uint256 _tokenId ) external {
     // Check the option's claimstamp.
-    if( IOption721(item).exercisable(_tokenId) > block.timestamp ){
+    if( IOption721(option).exercisable(_tokenId) > block.timestamp ){
       revert NotExercisableYet();
     }
 
     // Double check the option's ownership.
-    if( IOption721(item).ownerOf(_tokenId) != msg.sender ){
+    if( IOption721(option).ownerOf(_tokenId) != msg.sender ){
       revert NotOptionOwner();
     }
 
-    // Burn the option.
-    IOption721(item).burn(_tokenId);
+    // Check if the option has already been exercised.
+    if( exercised[_round][_tokenId] ){
+      revert OptionAlreadyExercised();
+    }
+
+    // Mark the option as exercised.
+    exercised[_round][_tokenId] = true;
+
+    // Deactivate the option.
+    IOption721(option).lockTransfer(_tokenId, true);
 
     // Mint the item.
     ITiny721(item).mint_Qgo(msg.sender, 1);
+    emit Exercised(_tokenId, msg.sender);
   }
 
 }

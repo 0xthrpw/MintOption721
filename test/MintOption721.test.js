@@ -114,28 +114,36 @@ describe('/MOTG/ Mint Option Testing General', function () {
       console.log("now", now, termTime);
 
       let totalSpend = (config.basicPrice - discount) * amount;
-      console.log("uh oh", totalSpend, config.discountPerTermUnit);
 
-      await mintOption721.connect(deployer.signer).purchaseOption(
+      let purchase = await mintOption721.connect(deployer.signer).purchaseOption(
         '0', // round id
-        termTime,
+        termLength,
         amount, // amount
         { value: totalSpend.toString() }
       );
 
+      let purchaseReceipt = await purchase.wait();
+      let purchasedOptionId = purchaseReceipt.events[0].topics[3];
 
-  // console.log("purchased", now, termTime)
-  //     //fast forward to exercisable
-  //
-  //     await ethers.provider.send('evm_setNextBlockTimestamp', [
-  //       now + termTime
-  //     ]);
-  //     await ethers.provider.send('evm_mine');
-  //
-  //     const blockNumAfter = await ethers.provider.getBlockNumber();
-  //     const blockAfter = await ethers.provider.getBlock(blockNumAfter);
-  //     const after = blockAfter.timestamp;
-  //     console.log("after", after);
+
+
+      await ethers.provider.send('evm_setNextBlockTimestamp', [
+        now + termTime
+      ]);
+      await ethers.provider.send('evm_mine');
+
+      const blockNumAfter = await ethers.provider.getBlockNumber();
+      const blockAfter = await ethers.provider.getBlock(blockNumAfter);
+      const after = blockAfter.timestamp;
+      console.log("after", after);
+
+      const exerciseDate = await option721.exercisable(purchasedOptionId);
+console.log("exerciseDate", exerciseDate);
+      //redeem exercisable token
+      await mintOption721.connect(deployer.signer).exerciseOption(
+        '0', // round id
+        purchasedOptionId
+      );
 
     });
     it('puchase token at basic price', async () => {
