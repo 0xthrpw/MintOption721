@@ -43,8 +43,8 @@ contract MintOption721 is Ownable, ReentrancyGuard {
   /// roundId > configuration struct
   mapping(uint256 => Config) public configs;
 
-  /// roundId > tokenId > claimed flag
-  mapping(uint256 => mapping(uint256 => bool)) public exercised;
+  /// tokenId > claimed flag
+  mapping(uint256 => bool) public exercised;
 
   constructor(
     address _item,
@@ -139,7 +139,7 @@ contract MintOption721 is Ownable, ReentrancyGuard {
   /**
 
   */
-  function exerciseOption ( uint256 _round, uint256 _tokenId ) external {
+  function exerciseOption ( uint256 _tokenId ) external {
     // Check the option's claimstamp.
     if( IOption721(option).exercisable(_tokenId) > block.timestamp ){
       revert NotExercisableYet();
@@ -151,12 +151,12 @@ contract MintOption721 is Ownable, ReentrancyGuard {
     }
 
     // Check if the option has already been exercised.
-    if( exercised[_round][_tokenId] ){
+    if( exercised[_tokenId] ){
       revert OptionAlreadyExercised();
     }
 
     // Mark the option as exercised.
-    exercised[_round][_tokenId] = true;
+    exercised[_tokenId] = true;
 
     // Deactivate the option.
     IOption721(option).lockTransfer(_tokenId, true);

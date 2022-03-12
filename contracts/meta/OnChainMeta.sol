@@ -11,22 +11,29 @@ contract OnChainMeta {
     /// @dev A mask for isolating an item's group ID.
     uint256 private constant GROUP_MASK = uint256(type(uint128).max) << 128;
 
-    string public metaDescription = 'You have to be a sea in order to absorb a dirty stream without getting dirty.';
-
-    function _buildMeta(uint256 _tokenId, address _owner) internal view returns (string memory) {
+    function _buildMeta(
+      uint256 _tokenId,
+      uint256 _exercisable,
+      address _owner,
+      address _itemForOption,
+      string memory _itemForOptionName
+    ) internal view returns (string memory) {
 
       string memory imageDat = string(abi.encodePacked(
         '{"name":"',
-           _buildName(_tokenId),
+           _buildName(_tokenId, _itemForOption),
           '",',
           '"description":"',
-             metaDescription,
+             string(abi.encodePacked(
+               'Mint Option for ',
+               _itemForOption
+             )),
           '",',
           '"image":"',
           'data:image/svg+xml;base64,',
             Base64.encode(bytes(_generateSVGImage(_tokenId, _owner))),
           '", "attributes":[',
-             _getMetadata(_tokenId),
+             _getMetadata(_tokenId, _exercisable, _itemForOption, _itemForOptionName),
           ']',
         '}')
       );
@@ -39,24 +46,44 @@ contract OnChainMeta {
       return image;
     }
 
-    function _buildName(uint256 _tokenId) internal view returns (string memory) {
+    function _buildName(
+      uint256 _tokenId,
+      address _itemForOption
+    ) internal view returns (string memory) {
       uint256 groupId = (_tokenId & GROUP_MASK) >> 128;
       uint256 id = _tokenId << 128 >> 128;
-      return string(abi.encodePacked("TSVG-", groupId.toString(), "-", id.toString()));
+      return string(abi.encodePacked(
+        groupId.toString(),
+        "-",
+        id.toString(),
+        "-",
+        string(abi.encodePacked(_itemForOption))
+      ));
     }
 
-    function _getMetadata(uint256 _tokenId) internal view returns (string memory) {
+    function _getMetadata(
+      uint256 _tokenId,
+      uint256 _exercisable,
+      address _itemForOption,
+      string memory _itemForOptionName
+    ) internal view returns (string memory) {
       uint256 groupId = (_tokenId & GROUP_MASK) >> 128;
       uint256 id = _tokenId << 128 >> 128;
       string memory metadata = string(abi.encodePacked(
         _wrapTrait("Generation", groupId.toString()),',',
-        _wrapTrait("Identifier", id.toString())
+        _wrapTrait("Option ID", id.toString()),
+        _wrapTrait("Exercisable", _exercisable.toString()),
+        _wrapTrait("Item Name", _itemForOptionName),
+        _wrapTrait("Item Contract", string(abi.encodePacked(_itemForOption)))
       ));
 
       return metadata;
     }
 
-    function _wrapTrait(string memory trait, string memory value) internal pure returns(string memory) {
+    function _wrapTrait(
+      string memory trait,
+      string memory value
+    ) internal pure returns(string memory) {
         return string(abi.encodePacked(
             '{"trait_type":"',
             trait,
@@ -66,7 +93,10 @@ contract OnChainMeta {
         ));
     }
 
-    function _generateSVGImage(uint256 _tokenId, address _owner) internal view returns (string memory svg) {
+    function _generateSVGImage(
+      uint256 _tokenId,
+      address _owner
+    ) internal view returns (string memory svg) {
       NFTSVG.SVGParams memory svgParams =
         NFTSVG.SVGParams({
           tokenId: _tokenId,

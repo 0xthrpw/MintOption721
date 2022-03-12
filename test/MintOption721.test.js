@@ -61,8 +61,9 @@ describe('/MOTG/ Mint Option Testing General', function () {
     option721 = await Option721.connect(deployer.signer).deploy(
       NAME,
       SYMBOL,
-      METADATA_URI,
-      CAP
+      "MINT OPTIONAL",
+      CAP,
+      token721.address
     );
     await option721.deployed();
 
@@ -141,7 +142,6 @@ describe('/MOTG/ Mint Option Testing General', function () {
 console.log("exerciseDate", exerciseDate);
       //redeem exercisable token
       await mintOption721.connect(deployer.signer).exerciseOption(
-        '0', // round id
         purchasedOptionId
       );
 
