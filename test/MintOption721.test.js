@@ -98,31 +98,53 @@ describe('/MOTG/ Mint Option Testing General', function () {
   });
 
   context('Basic configuration', async function() {
+
+
+    it('purchase option', async () => {
+      ///early minter
+      let amount = '1';
+
+      let termLength = '4';
+      let termTime = termLength * config.termUnit;
+      let discount = termLength * config.discountPerTermUnit;
+
+      const blockNumBefore = await ethers.provider.getBlockNumber();
+      const block = await ethers.provider.getBlock(blockNumBefore);
+      const now = block.timestamp;
+      console.log("now", now, termTime);
+
+      let totalSpend = (config.basicPrice - discount) * amount;
+      console.log("uh oh", totalSpend, config.discountPerTermUnit);
+
+      await mintOption721.connect(deployer.signer).purchaseOption(
+        '0', // round id
+        termTime,
+        amount, // amount
+        { value: totalSpend.toString() }
+      );
+
+
+  // console.log("purchased", now, termTime)
+  //     //fast forward to exercisable
+  //
+  //     await ethers.provider.send('evm_setNextBlockTimestamp', [
+  //       now + termTime
+  //     ]);
+  //     await ethers.provider.send('evm_mine');
+  //
+  //     const blockNumAfter = await ethers.provider.getBlockNumber();
+  //     const blockAfter = await ethers.provider.getBlock(blockNumAfter);
+  //     const after = blockAfter.timestamp;
+  //     console.log("after", after);
+
+    });
     it('puchase token at basic price', async () => {
       ///early minter
       let amount = '1';
       let totalSpend = config.basicPrice * amount;
 
       await mintOption721.connect(deployer.signer).purchaseToken(
-        0, // round id
-        amount, // amount
-        { value: totalSpend.toString() }
-      );
-    });
-
-    it('purchase option', async () => {
-      ///early minter
-      let amount = '1';
-
-      let termLength = 4;
-      let termTime = termLength * config.termUnit;
-      let discount = termTime * config.discountPerTermUnit;
-
-      let totalSpend = (config.basicPrice - discount) * amount;
-      console.log("discount", totalSpend, config.basicPrice, discount, amount);
-      console.log("uh oh", termTime, config.discountPerTermUnit);
-      await mintOption721.connect(deployer.signer).purchaseOption(
-        0, // round id
+        '0', // round id
         amount, // amount
         { value: totalSpend.toString() }
       );
