@@ -12,7 +12,7 @@ const { should } = require('chai').should();
 */
 describe('/MOTG/ Mint Option Testing General', function () {
   let deployer, alice, bob, carol, dev;
-  let addresses, recipients;
+  let addresses, recipients, config;
   let Option721, Token721, MintOption721;
   let option721, token721, mintOption721;
 
@@ -66,7 +66,7 @@ describe('/MOTG/ Mint Option Testing General', function () {
     );
     await option721.deployed();
 
-    let config = {
+    config = {
       startTime: START_TIME,
       basicPrice: ethers.utils.parseEther(START_PRICE),
       minPrice: ethers.utils.parseEther(REST_PRICE),
@@ -86,11 +86,46 @@ describe('/MOTG/ Mint Option Testing General', function () {
     let configured = await mintOption721.configs(0);
     console.log("config", configured);
 
+    await token721.connect(deployer.signer).setAdmin(
+      mintOption721.address,
+      true
+    );
+
+    await option721.connect(deployer.signer).setAdmin(
+      mintOption721.address,
+      true
+    );
   });
 
   context('Basic configuration', async function() {
-    it('do', async () => {
+    it('puchase token at basic price', async () => {
+      ///early minter
+      let amount = '1';
+      let totalSpend = config.basicPrice * amount;
 
+      await mintOption721.connect(deployer.signer).purchaseToken(
+        0, // round id
+        amount, // amount
+        { value: totalSpend.toString() }
+      );
+    });
+
+    it('purchase option', async () => {
+      ///early minter
+      let amount = '1';
+
+      let termLength = 4;
+      let termTime = termLength * config.termUnit;
+      let discount = termTime * config.discountPerTermUnit;
+
+      let totalSpend = (config.basicPrice - discount) * amount;
+      console.log("discount", totalSpend, config.basicPrice, discount, amount);
+      console.log("uh oh", termTime, config.discountPerTermUnit);
+      await mintOption721.connect(deployer.signer).purchaseOption(
+        0, // round id
+        amount, // amount
+        { value: totalSpend.toString() }
+      );
     });
   });
 });

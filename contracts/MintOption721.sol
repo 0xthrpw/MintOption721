@@ -8,7 +8,17 @@ import "./interfaces/ITiny721.sol";
 
 error CannotUnderpayForMint();
 error RefundTransferFailed();
-error ZeroTermConfig();
+error NotExercisableYet();
+error NotOptionOwner();
+error ZeroPriceConfig();
+error ZeroPricePurchase();
+
+interface IOption721 {
+  function mintOpt( uint256 amount, uint256 claimStamp, address recipient ) external;
+  function burn( uint256 tokenId ) external;
+  function exercisable( uint256 tokenId ) external returns ( uint256 );
+  function ownerOf( uint256 id ) external returns ( address );
+}
 
 /**
 
@@ -32,11 +42,8 @@ contract MintOption721 is Ownable, ReentrancyGuard {
   /// roundId > configuration struct
   mapping(uint256 => Config) public configs;
 
-  /// roundId > tokenId > timestamp
-  mapping(uint256 => mapping(uint256 => uint256)) public claimStamps;
-
   /// roundId > tokenId > claimed flag
-  mapping(uint256 => mapping(uint256 => bool)) public claimed;
+  mapping(uint256 => mapping(uint256 => bool)) public exercised;
 
   constructor(
     address _item,
@@ -58,32 +65,27 @@ contract MintOption721 is Ownable, ReentrancyGuard {
   /**
 
   */
-  function purchase (
+  function purchaseOption (
     uint256 _roundId,
     uint256 _termLength,
     uint256 _amount
   ) external payable nonReentrant {
-    uint256 price;
-    uint256 claimStamp = block.timestamp;
-
     Config memory config = configs[_roundId];
-    if( config.termUnit == 0 ){ revert ZeroTermConfig(); }
 
-    // User is minting with lockup for a discount
-    if(_termLength > 0){
-      uint256 discount = _termLength * config.termUnit * config.discountPerTermUnit;
+    if( config.basicPrice == 0 || config.minPrice == 0){ revert ZeroPricePurchase(); }
 
-      price = (config.minPrice + discount > config.basicPrice)
-        ? config.minPrice
-        : config.basicPrice - discount ;
+    // Calculate the option discount.
+    uint256 discount = _termLength * config.termUnit * config.discountPerTermUnit;
 
-      claimStamp = block.timestamp + ( _termLength * config.termUnit );
+    // Check if price has broken minimum price threshold.
+    uint256 price = (config.minPrice + discount > config.basicPrice)
+      ? config.minPrice
+      : config.basicPrice - discount ;
 
-    // No lock, no discount.
-    }else{
-      price = config.basicPrice;
-    }
+    // Calculate the timestamp of when the option becomes exercisable.
+    uint256 claimStamp = block.timestamp + ( _termLength * config.termUnit );
 
+    // Calculate the total cost of this purchase.
     uint256 totalCharge = price * _amount;
 
     // Reject the purchase if the caller is underpaying.
@@ -96,15 +98,56 @@ contract MintOption721 is Ownable, ReentrancyGuard {
       if (!returned) { revert RefundTransferFailed(); }
     }
 
-    //set claim
+    // Mint the option.
+    IOption721(option).mintOpt(_amount, claimStamp, msg.sender);
+  }
 
+
+  /**
+
+  */
+  function purchaseToken (
+    uint256 _roundId,
+    uint256 _amount
+  ) external payable nonReentrant {
+    Config memory config = configs[_roundId];
+    if( config.basicPrice == 0 ){ revert ZeroPriceConfig(); }
+
+    // Calculate the total cost of this purchase.
+    uint256 totalCharge = config.basicPrice * _amount;
+
+    // Reject the purchase if the caller is underpaying.
+    if (msg.value < totalCharge) { revert CannotUnderpayForMint(); }
+
+    // Refund the caller's excess payment if they overpaid.
+    if (msg.value > totalCharge) {
+      uint256 excess = msg.value - totalCharge;
+      (bool returned, ) = payable(_msgSender()).call{ value: excess }("");
+      if (!returned) { revert RefundTransferFailed(); }
+    }
+
+    ITiny721(item).mint_Qgo(msg.sender, _amount);
   }
 
   /**
 
   */
-  function claim () external {
+  function exerciseOption ( uint256 _tokenId ) external {
+    // Check the option's claimstamp.
+    if( IOption721(item).exercisable(_tokenId) > block.timestamp ){
+      revert NotExercisableYet();
+    }
 
+    // Double check the option's ownership.
+    if( IOption721(item).ownerOf(_tokenId) != msg.sender ){
+      revert NotOptionOwner();
+    }
+
+    // Burn the option.
+    IOption721(item).burn(_tokenId);
+
+    // Mint the item.
+    ITiny721(item).mint_Qgo(msg.sender, 1);
   }
 
 }

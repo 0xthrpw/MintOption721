@@ -504,10 +504,10 @@ contract Option721 is
     @param _recipient The recipient of the tokens being minted.
     @param _amount The amount of tokens to mint.
   */
-  function mint_Qgo (
-    address _recipient,
+  function mintOpt (
     uint256 _amount,
-    uint256 _claimStamp
+    uint256 _claimStamp,
+    address _recipient
   ) external onlyAdmin {
     if (_recipient == address(0)) { revert MintToZeroAddress(); }
     if (_amount == 0) { revert MintZeroQuantity(); }
