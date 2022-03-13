@@ -16,7 +16,7 @@ error ZeroPricePurchase();
 
 interface IOption721 {
   function mintOpt( uint256 amount, uint256 claimStamp, address recipient ) external;
-  function lockTransfer( uint256 tokenId, bool state ) external;
+  function transferFrom( address from, address to, uint256 tokenId ) external;
   function exercisable( uint256 tokenId ) external returns ( uint256 );
   function ownerOf( uint256 id ) external returns ( address );
 }
@@ -158,8 +158,8 @@ contract MintOption721 is Ownable, ReentrancyGuard {
     // Mark the option as exercised.
     exercised[_tokenId] = true;
 
-    // Deactivate the option.
-    IOption721(option).lockTransfer(_tokenId, true);
+    // Deactivate the option by sending it to its contract.
+    IOption721(option).transferFrom(msg.sender, option, _tokenId);
 
     // Mint the item.
     ITiny721(item).mint_Qgo(msg.sender, 1);

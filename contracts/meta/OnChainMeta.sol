@@ -33,10 +33,7 @@ contract OnChainMeta {
            _buildName(_tokenId, _itemForOption),
           '",',
           '"description":"',
-             string(abi.encodePacked(
-               'Mint Option for ',
-               _itemForOptionName
-             )),
+             _itemForOptionName
           '",',
           '"image":"',
           'data:image/svg+xml;base64,',

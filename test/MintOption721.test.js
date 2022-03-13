@@ -126,19 +126,8 @@ console.log("token721", token721.address);
 
       let purchaseReceipt = await purchase.wait();
       let purchasedOptionId = purchaseReceipt.events[0].topics[3];
-      
-      let metadata = await option721.tokenURI(1);
-      let data = metadata.substring(29);
-      let buff = new Buffer.from(data, 'base64');
 
-      console.log("metadata", buff.toString('ascii'));
 
-      let meta = JSON.parse(buff.toString('ascii'));
-      let imagedata = meta.image.substring(26);
-
-      console.log("imagedata", imagedata.toString('ascii'));
-      let imgbuffer = new Buffer.from(imagedata, 'base64');
-      fs.writeFileSync('art/token_gen.svg', imgbuffer);
 
 
 
@@ -155,10 +144,25 @@ console.log("token721", token721.address);
       const exerciseDate = await option721.exercisable(purchasedOptionId);
 console.log("exerciseDate", exerciseDate);
       //redeem exercisable token
+      await option721.connect(deployer.signer).setApprovalForAll(mintOption721.address, true);
+
       await mintOption721.connect(deployer.signer).exerciseOption(
         purchasedOptionId
       );
 
+
+      let metadata = await option721.tokenURI(1);
+      let data = metadata.substring(29);
+      let buff = new Buffer.from(data, 'base64');
+
+      console.log("metadata", buff.toString('ascii'));
+
+      let meta = JSON.parse(buff.toString('ascii'));
+      let imagedata = meta.image.substring(26);
+
+      console.log("imagedata", imagedata.toString('ascii'));
+      let imgbuffer = new Buffer.from(imagedata, 'base64');
+      fs.writeFileSync('art/token_gen.svg', imgbuffer);
 
     });
     it('puchase token at basic price', async () => {
