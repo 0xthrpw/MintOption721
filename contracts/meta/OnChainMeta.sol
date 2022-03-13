@@ -19,6 +19,15 @@ contract OnChainMeta {
       string memory _itemForOptionName
     ) internal view returns (string memory) {
 
+      NFTSVG.SVGParams memory svgParams =
+        NFTSVG.SVGParams({
+          tokenId: _tokenId,
+          exercisable: _exercisable,
+          owner: _owner,
+          item: _itemForOption,
+          itemName: _itemForOptionName
+        });
+
       string memory imageDat = string(abi.encodePacked(
         '{"name":"',
            _buildName(_tokenId, _itemForOption),
@@ -26,14 +35,14 @@ contract OnChainMeta {
           '"description":"',
              string(abi.encodePacked(
                'Mint Option for ',
-               _itemForOption
+               _itemForOptionName
              )),
           '",',
           '"image":"',
           'data:image/svg+xml;base64,',
-            Base64.encode(bytes(_generateSVGImage(_tokenId, _owner))),
+            Base64.encode(bytes(NFTSVG.generateSVG(svgParams))),
           '", "attributes":[',
-             _getMetadata(_tokenId, _exercisable, _itemForOption, _itemForOptionName),
+             _getMetadata(svgParams),
           ']',
         '}')
       );
@@ -49,32 +58,35 @@ contract OnChainMeta {
     function _buildName(
       uint256 _tokenId,
       address _itemForOption
-    ) internal view returns (string memory) {
+    ) internal pure returns (string memory) {
       uint256 groupId = (_tokenId & GROUP_MASK) >> 128;
       uint256 id = _tokenId << 128 >> 128;
+      uint256 itemContract = uint256(uint160(_itemForOption));
       return string(abi.encodePacked(
         groupId.toString(),
         "-",
         id.toString(),
         "-",
-        string(abi.encodePacked(_itemForOption))
+        itemContract.toHexString()
       ));
     }
 
     function _getMetadata(
-      uint256 _tokenId,
-      uint256 _exercisable,
-      address _itemForOption,
-      string memory _itemForOptionName
-    ) internal view returns (string memory) {
-      uint256 groupId = (_tokenId & GROUP_MASK) >> 128;
-      uint256 id = _tokenId << 128 >> 128;
+      NFTSVG.SVGParams memory _params
+      // uint256 _tokenId,
+      // uint256 _exercisable,
+      // address _itemForOption,
+      // string memory _itemForOptionName
+    ) internal pure returns (string memory) {
+      uint256 groupId = (_params.tokenId & GROUP_MASK) >> 128;
+      uint256 id = _params.tokenId << 128 >> 128;
+      uint256 itemContract = uint256(uint160(_params.item));
       string memory metadata = string(abi.encodePacked(
-        _wrapTrait("Generation", groupId.toString()),',',
-        _wrapTrait("Option ID", id.toString()),
-        _wrapTrait("Exercisable", _exercisable.toString()),
-        _wrapTrait("Item Name", _itemForOptionName),
-        _wrapTrait("Item Contract", string(abi.encodePacked(_itemForOption)))
+        //_wrapTrait("Generation", groupId.toString()),',',
+        _wrapTrait("Option ID", id.toString()),',',
+        _wrapTrait("Exercisable", _params.exercisable.toString()),',',
+        _wrapTrait("Item Name", _params.itemName),',',
+        _wrapTrait("Item Contract", itemContract.toHexString())
       ));
 
       return metadata;
@@ -93,17 +105,9 @@ contract OnChainMeta {
         ));
     }
 
-    function _generateSVGImage(
-      uint256 _tokenId,
-      address _owner
-    ) internal view returns (string memory svg) {
-      NFTSVG.SVGParams memory svgParams =
-        NFTSVG.SVGParams({
-          tokenId: _tokenId,
-          block: block.number,
-          owner: _owner
-        });
-
-      return NFTSVG.generateSVG(svgParams);
-    }
+    // function _generateSVGImage(
+    //   NFTSVG.SVGParams memory _params
+    // ) internal view returns (string memory svg) {
+    //   return NFTSVG.generateSVG(_params);
+    // }
 }

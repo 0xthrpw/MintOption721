@@ -8,86 +8,87 @@ library NFTSVG {
 
   struct SVGParams {
     uint256 tokenId;
-    uint256 block;
+    uint256 exercisable;
     address owner;
+    address item;
+    string itemName;
   }
 
   function generateSVG(SVGParams memory params) internal view returns (string memory svg) {
     return
       string(
         abi.encodePacked(
-          '<svg version="1.1" width="1000" height="1000" viewBox="0 0 320 320" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">',
-          '<rect width="1000" height="1000" x="0" y="0" fill="black" />',
+          '<svg version="1.1" width="1000" height="1000" viewBox="0 0 480 480" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">',
           _generateSVGPaths(params),
           '</svg>'
         )
       );
   }
 
+  function _parseRemTime(uint256 _timestamp) private view returns (string memory remaining) {
+    (_timestamp > block.timestamp) ? (_timestamp - block.timestamp) / 3600 : 0;
+    uint256 remainingSec = 0;
+    uint256 remainingMin = 0;
+    uint256 remainingHour = 0;
+    uint256 remainingDay = 0;
+    
+    if(_timestamp > block.timestamp){
+      uint256 diff = _timestamp - block.timestamp;
+      remainingSec = diff % 60;
+      diff = diff - remainingSec;
+      remainingMin = diff % 3600 / 60;
+      diff = diff - (diff % 3600);
+      remainingHour = diff % 86400 / 3600;
+      diff = diff - diff % 86400;
+      remainingDay = diff / 86400;
+    }
+
+    return string(abi.encodePacked(
+      remainingDay.toString(),
+      'd ',
+      remainingHour.toString(),
+      'h ',
+      remainingMin.toString(),
+      'm ',
+      remainingSec.toString(),
+      's '
+    ));
+  }
+
   function _generateSVGPaths(SVGParams memory params) private view returns (string memory svgPaths) {
     string memory svgPaths;
+    string memory remaining = _parseRemTime(params.exercisable);
+    uint256 owner = uint256(uint160(params.owner));
 
-    uint256 pos_x;
-    uint256 pos_y;
-    uint256 w = 20;
-    ( , string memory base ) = idToColor(params.tokenId, params.tokenId + 1, params.owner);
+    svgPaths = string(abi.encodePacked(
+      '<rect width="480" height="480" x="0" y="0" fill="white"  /><rect width="480" height="480" x="0" y="0" fill="url(#back)"  /><rect width="360" height="460" x="60" y="10" fill="black" opacity=".7" /><text x="80" y="40" font-family="monospace" fill="white">Mint Option #',
+      params.tokenId.toString(),
+      '</text>'
+    ));
 
-    for(uint256 r = 0; r < 8; ++r){
-      pos_x = 0;
-      for(uint256 c = 0; c < 8; ++c){
-        ( uint256 duration, string memory rgb ) = idToColor(params.tokenId, r*c+pos_x*pos_y*pos_y+pos_x+r, params.owner);
-        //( uint256 duration2, string memory rgb2 ) = idToColor(params.tokenId, r*c+duration, params.owner);
-        string memory pattern = string(abi.encodePacked(base, rgb, base, 'rgb(0,0,0);'));
-        svgPaths = string(abi.encodePacked(
-          svgPaths,
-          '<rect width="20" height="20" x="',
-          pos_x.toString(),
-          '" y="',
-          pos_y.toString(),
-          '" style="stroke-width:3;stroke:rgb(0,0,0)">',
-          '<animateTransform attributeName="transform" type="scale" from="0.1" to="7.9" dur="',
-          (duration + c).toString(),
-          's" repeatCount="indefinite" />'
-          '<animate attributeName="fill" values="',
-          pattern,
-          '" dur="',
-          (duration + c).toString(),
-          's" repeatCount="indefinite" />'
-          '</rect>'
-        ));
-        pos_x = pos_x + w;
-      }
-      pos_y = pos_y + w;
-    }
+    svgPaths = string(abi.encodePacked(
+      svgPaths,
+      '<text x="80" y="55" font-family="monospace" fill="white">Collection: ',
+      params.itemName,
+      '</text>'
+    ));
+
+    svgPaths = string(abi.encodePacked(
+      svgPaths,
+      '<text x="80" y="90" font-family="monospace" fill="white">Owner: </text><text x="80" y="105" font-family="monospace" fill="white">',
+      owner.toHexString(),
+      '</text><text x="80" y="135" font-family="monospace" fill="white">Exercisable: </text><text x="80" y="150" font-family="monospace" fill="white">',
+      params.exercisable.toString(),
+      '</text><text x="80" y="180" font-family="monospace" fill="white">Remaining: </text><text x="80" y="195" font-family="monospace" fill="white">',
+      remaining,
+      '</text>'
+    ));
+
+    svgPaths = string(abi.encodePacked(
+      svgPaths,
+      '<defs><linearGradient id="back" x1="100%" y1="100%"><stop offset="0%" stop-color="green" stop-opacity=".5"><animate attributeName="stop-color" values="green;blue;red;red;pink;red;red;purple;green" dur="60s" repeatCount="indefinite" /></stop><stop offset="100%" stop-color="lightblue" stop-opacity=".5"><animate attributeName="stop-color" values="orange;purple;purple;orange;purple;purple;blue;lightblue;orange" dur="60s" repeatCount="indefinite" /><animate attributeName="offset" values=".95;.80;.60;.40;.20;0;.20;.40;.60;.80;.95" dur="60s" repeatCount="indefinite" /></stop></linearGradient></defs>'
+    ));
 
     return svgPaths;
   }
-
-  function idToColor(uint256 _id, uint256 _cell, address _owner) public view returns (uint256, string memory) {
-    uint256 seed = uint256(keccak256(abi.encodePacked(_id, _owner, _cell, address(this))));
-
-    uint256 firstChunk = seed % 256;
-    uint256 secondChunk = ((seed - firstChunk) / 256) % 256;
-    uint256 thirdChunk = ((((seed- firstChunk) / 256) - secondChunk ) / 256) % 256;
-
-    string memory rgbString = string(abi.encodePacked(
-      'rgb(',
-      firstChunk.toString(),
-      ', ',
-      secondChunk.toString(),
-      ', ',
-      thirdChunk.toString(),
-      ');'
-    ));
-
-    if(thirdChunk > secondChunk){
-      if(thirdChunk - secondChunk < 10){
-        rgbString = string(abi.encodePacked('rgb(0,0,255);'));
-      }
-    }
-
-    firstChunk = 256 - firstChunk;
-
-    return (10 + (firstChunk * firstChunk % 64), rgbString);
-   }
 }

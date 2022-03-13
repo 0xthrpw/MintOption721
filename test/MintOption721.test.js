@@ -2,6 +2,7 @@
 
 const { describe, it } = require('mocha');
 const { network, ethers } = require('hardhat');
+const fs = require('fs');
 const { BigNumber } = require('ethers');
 const { expect } = require('chai');
 const { should } = require('chai').should();
@@ -57,7 +58,7 @@ describe('/MOTG/ Mint Option Testing General', function () {
       CAP
     );
     await token721.deployed();
-
+console.log("token721", token721.address);
     option721 = await Option721.connect(deployer.signer).deploy(
       NAME,
       SYMBOL,
@@ -105,7 +106,7 @@ describe('/MOTG/ Mint Option Testing General', function () {
       ///early minter
       let amount = '1';
 
-      let termLength = '4';
+      let termLength = '20';
       let termTime = termLength * config.termUnit;
       let discount = termLength * config.discountPerTermUnit;
 
@@ -125,6 +126,19 @@ describe('/MOTG/ Mint Option Testing General', function () {
 
       let purchaseReceipt = await purchase.wait();
       let purchasedOptionId = purchaseReceipt.events[0].topics[3];
+      
+      let metadata = await option721.tokenURI(1);
+      let data = metadata.substring(29);
+      let buff = new Buffer.from(data, 'base64');
+
+      console.log("metadata", buff.toString('ascii'));
+
+      let meta = JSON.parse(buff.toString('ascii'));
+      let imagedata = meta.image.substring(26);
+
+      console.log("imagedata", imagedata.toString('ascii'));
+      let imgbuffer = new Buffer.from(imagedata, 'base64');
+      fs.writeFileSync('art/token_gen.svg', imgbuffer);
 
 
 
@@ -144,6 +158,7 @@ console.log("exerciseDate", exerciseDate);
       await mintOption721.connect(deployer.signer).exerciseOption(
         purchasedOptionId
       );
+
 
     });
     it('puchase token at basic price', async () => {
