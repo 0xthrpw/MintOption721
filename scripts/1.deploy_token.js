@@ -16,7 +16,7 @@ async function main() {
   const OPT_DESC = 'Testing Mint Options';
 
   // mint shop params
-  const START_TIME = currentDate / 1000;
+  const START_TIME = Math.floor(currentDate / 1000);
   const BASIC_PRICE = '1';
   const MIN_PRICE = '.01';
   const DISCOUNT_PER_TERM = '.01';
