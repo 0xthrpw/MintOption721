@@ -6,11 +6,13 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
 import "./interfaces/ITiny721.sol";
 
+error AmountGreaterThanRemaining();
 error CannotUnderpayForMint();
 error RefundTransferFailed();
 error NotExercisableYet();
 error NotOptionOwner();
 error OptionAlreadyExercised();
+error SweepingTransferFailed();
 error ZeroPriceConfig();
 error ZeroPricePurchase();
 
@@ -21,6 +23,9 @@ interface IOption721 {
   function ownerOf( uint256 id ) external returns ( address );
 }
 
+interface IERC20 {
+  function safeTransfer( address _destination, uint256 _amount ) external;
+}
 /**
 
 */
@@ -38,7 +43,10 @@ contract MintOption721 is Ownable, ReentrancyGuard {
     uint256 minPrice;
     uint256 discountPerTermUnit;
     uint256 termUnit;
+    bool syncSupply;
   }
+
+  uint256 public sellableCount;
 
   /// roundId > configuration struct
   mapping(uint256 => Config) public configs;
@@ -49,11 +57,13 @@ contract MintOption721 is Ownable, ReentrancyGuard {
   constructor(
     address _item,
     address _option,
-    address _paymentReceiver
+    address _paymentReceiver,
+    uint256 _sellableCount
   ) {
     item = _item;
     option = _option;
     paymentReceiver = _paymentReceiver;
+    sellableCount = _sellableCount;
   }
 
   event Exercised(
@@ -94,6 +104,14 @@ contract MintOption721 is Ownable, ReentrancyGuard {
     // Calculate the total cost of this purchase.
     uint256 totalCharge = price * _amount;
 
+    //
+    if( config.syncSupply ){
+      if( _amount > sellableCount ){
+        revert AmountGreaterThanRemaining();
+      }
+      sellableCount -= _amount;
+    }
+
     // Reject the purchase if the caller is underpaying.
     if (msg.value < totalCharge) { revert CannotUnderpayForMint(); }
 
@@ -119,6 +137,12 @@ contract MintOption721 is Ownable, ReentrancyGuard {
     Config memory config = configs[_roundId];
     if( config.basicPrice == 0 ){ revert ZeroPriceConfig(); }
 
+    if( config.syncSupply ){
+      if( _amount > sellableCount ){
+        revert AmountGreaterThanRemaining();
+      }
+      sellableCount -= _amount;
+    }
     // Calculate the total cost of this purchase.
     uint256 totalCharge = config.basicPrice * _amount;
 
@@ -139,7 +163,7 @@ contract MintOption721 is Ownable, ReentrancyGuard {
   /**
 
   */
-  function exerciseOption ( uint256 _tokenId ) external {
+  function exerciseOption ( uint256 _tokenId ) external nonReentrant {
     // Check the option's claimstamp.
     if( IOption721(option).exercisable(_tokenId) > block.timestamp ){
       revert NotExercisableYet();
@@ -164,6 +188,44 @@ contract MintOption721 is Ownable, ReentrancyGuard {
     // Mint the item.
     ITiny721(item).mint_Qgo(msg.sender, 1);
     emit Exercised(_tokenId, msg.sender);
+  }
+
+  /**
+    Allow any caller to send this contract's balance of Ether to the payment
+    destination.
+  */
+  function claim () external nonReentrant {
+    (bool success, ) = payable(paymentReceiver).call{
+      value: address(this).balance
+    }("");
+    if (!success) { revert SweepingTransferFailed(); }
+  }
+
+  /**
+    Allow the owner to sweep either Ether or a particular ERC-20 token from the
+    contract and send it to another address. This allows the owner of the shop
+    to withdraw their funds after the sale is completed.
+
+    @param _token The token to sweep the balance from; if a zero address is sent
+      then the contract's balance of Ether will be swept.
+    @param _amount The amount of token to sweep.
+    @param _destination The address to send the swept tokens to.
+  */
+  function sweep (
+    address _token,
+    address _destination,
+    uint256 _amount
+  ) external onlyOwner nonReentrant {
+
+    // A zero address means we should attempt to sweep Ether.
+    if (_token == address(0)) {
+      (bool success, ) = payable(_destination).call{ value: _amount }("");
+      if (!success) { revert SweepingTransferFailed(); }
+
+    // Otherwise, we should try to sweep an ERC-20 token.
+    } else {
+      IERC20(_token).safeTransfer(_destination, _amount);
+    }
   }
 
 }

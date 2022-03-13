@@ -73,13 +73,15 @@ console.log("token721", token721.address);
       basicPrice: ethers.utils.parseEther(START_PRICE),
       minPrice: ethers.utils.parseEther(REST_PRICE),
       discountPerTermUnit: ethers.utils.parseEther(DISCOUNT_PER_TERM),
-      termUnit: TERM_UNIT
+      termUnit: TERM_UNIT,
+      syncSupply: true
     }
 
     mintOption721 = await MintOption721.connect(deployer.signer).deploy(
       token721.address,
       option721.address,
-      deployer.address
+      deployer.address,
+      CAP
     );
     await mintOption721.deployed();
 

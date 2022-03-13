@@ -67,7 +67,8 @@ async function main() {
   let mintOption721 = await MintOption721.connect(deployer.signer).deploy(
     tiny721.address,
     option721.address,
-    deployer.address
+    deployer.address,
+    CAP
   );
   await mintOption721.deployed();
   console.log(`* mintOption721 deployed to: ${mintOption721.address}`);
@@ -78,7 +79,8 @@ async function main() {
     basicPrice: ethers.utils.parseEther(BASIC_PRICE),
     minPrice: ethers.utils.parseEther(MIN_PRICE),
     discountPerTermUnit: ethers.utils.parseEther(DISCOUNT_PER_TERM),
-    termUnit: TERM_UNIT
+    termUnit: TERM_UNIT,
+    syncSupply: true
   }
 
   let setConfig = await mintOption721.connect(deployer.signer).setConfig(0, config);
