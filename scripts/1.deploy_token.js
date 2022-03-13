@@ -3,18 +3,22 @@ const ethers = hre.ethers;
 
 async function main() {
   const currentDate = new Date().getTime()
+
+  // item collection params
   const ITEM_COLLECTION_NAME = `Tiny721-${currentDate}`;
   const METADATA_URI = 'https://ipfs.io/ipfs/QmYsu3FGSXYQ7pfcecdM91ULLmd9FNSE7AjFXhREJwbajY/';
   const ITEM_SYMBOL = 'TINY721';
   const CAP = '10000';
 
+  // option params
   const OPT_COLLECTION_NAME = `OPTION DEMO - ${currentDate}`;
   const OPT_SYMBOL = 'OPT721';
   const OPT_DESC = 'Testing Mint Options';
 
-  const START_TIME = '0';
+  // mint shop params
+  const START_TIME = currentDate / 1000;
   const BASIC_PRICE = '1';
-  const MIN_PRICE = '.001';
+  const MIN_PRICE = '.01';
   const DISCOUNT_PER_TERM = '.01';
   const TERM_UNIT = '4000';
 
@@ -66,10 +70,8 @@ async function main() {
     deployer.address
   );
   await mintOption721.deployed();
-
   console.log(`* mintOption721 deployed to: ${mintOption721.address}`);
   console.log(`[$]: npx hardhat verify --network rinkeby ${mintOption721.address}  ${tiny721.address}  ${option721.address}  ${deployer.address} `);
-
 
   let config = {
     startTime: START_TIME,
@@ -78,6 +80,7 @@ async function main() {
     discountPerTermUnit: ethers.utils.parseEther(DISCOUNT_PER_TERM),
     termUnit: TERM_UNIT
   }
+
   let setConfig = await mintOption721.connect(deployer.signer).setConfig(0, config);
   await setConfig.wait();
   console.log(`* mintOption721 config set`);

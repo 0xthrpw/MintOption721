@@ -33,7 +33,7 @@ contract OnChainMeta {
            _buildName(_tokenId, _itemForOption),
           '",',
           '"description":"',
-             _itemForOptionName
+             _itemForOptionName,
           '",',
           '"image":"',
           'data:image/svg+xml;base64,',
