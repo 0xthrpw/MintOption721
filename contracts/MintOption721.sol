@@ -12,8 +12,10 @@ error RefundTransferFailed();
 error NotExercisableYet();
 error NotOptionOwner();
 error OptionAlreadyExercised();
+error SaleNotStarted();
 error SweepingTransferFailed();
-error ZeroPriceConfig();
+error ZeroBasicPriceConfig();
+error ZeroMinPriceConfig();
 error ZeroPricePurchase();
 
 interface IOption721 {
@@ -26,8 +28,31 @@ interface IOption721 {
 interface IERC20 {
   function safeTransfer( address _destination, uint256 _amount ) external;
 }
-/**
 
+/**
+  @title MintOption721
+  @author 0xthrpw
+  @author Doctor Classic
+
+  This contract, along with the Option721 contract, allows users to purchase an
+  option to mint an item at a time-based discount.  Users purchase an option
+  token with a capped per term discount, and specify the length of time they are
+  willing to wait between paying for the option and exercising the option.  Once
+  the term is complete, users can exercise their option and redeem it to mint
+  their item. Users with low time preference can choose to forgo the option
+  method entirely and purchase their item immediately with no discount.
+
+  Additionally, the system can be configured to allow the number of option
+  tokens that can be minted to exceed the corresponding number of items that can
+  be minted.  This creates an effect where users that purchase options for
+  longer terms may not be able to exercise their options before the actual item
+  collection sells out (expiry).  The introduction of this risk creates a
+  disincentive to 'game' the system by blindly maxing out the term length for
+  the largest discount.  It is recognized that this may not be desirable for all
+  projects, so this setting is optional which will allow for guaranteed
+  option/item redemption.
+
+  March 13th, 2022
 */
 contract MintOption721 is Ownable, ReentrancyGuard {
 
@@ -37,6 +62,19 @@ contract MintOption721 is Ownable, ReentrancyGuard {
 
   address public item;
 
+  uint256 public sellableCount;
+
+
+  /**
+    The settings that govern all option behavior for a given round
+
+    @param startTime the starting time for options calculations
+    @param basicPrice
+    @param minPrice
+    @param discountPerTermUnit
+    @param termUnit
+    @param syncSupply
+  */
   struct Config {
     uint256 startTime;
     uint256 basicPrice;
@@ -46,14 +84,20 @@ contract MintOption721 is Ownable, ReentrancyGuard {
     bool syncSupply;
   }
 
-  uint256 public sellableCount;
-
   /// roundId > configuration struct
   mapping(uint256 => Config) public configs;
 
   /// tokenId > claimed flag
   mapping(uint256 => bool) public exercised;
 
+  /**
+    Construct a new instance of this contract.
+
+    @param _item The contract address of the collection being sold
+    @param _option The address of the collection's option contract.
+    @param _paymentReceiver The address of the recipient of sale proceeds.
+    @param _sellableCount The running number of items this contract can sell.
+  */
   constructor(
     address _item,
     address _option,
@@ -72,7 +116,12 @@ contract MintOption721 is Ownable, ReentrancyGuard {
   );
 
   /**
+    Set the configuration of a redemption at index 'roundId'.  Each round's
+    config consists of a `Config` struct.  See the comments above for the struct
+    itself for more detail on the contained parameters.
 
+    @param _roundId The index in the configs array where this config is stored.
+    @param _config The configuration data for the specified round.
   */
   function setConfig (uint256 _roundId, Config memory _config) external onlyOwner {
     configs[_roundId] = _config;
@@ -87,8 +136,12 @@ contract MintOption721 is Ownable, ReentrancyGuard {
     uint256 _amount
   ) external payable nonReentrant {
     Config memory config = configs[_roundId];
+    // Make sure sale has started
+    if( config.startTime > block.timestamp){ revert SaleNotStarted(); }
 
-    if( config.basicPrice == 0 || config.minPrice == 0){ revert ZeroPricePurchase(); }
+    // Make sure config isn't empty
+    if( config.basicPrice == 0 ){ revert ZeroBasicPriceConfig(); }
+    if( config.minPrice == 0 ){ revert ZeroMinPriceConfig(); }
 
     // Calculate the option discount.
     uint256 discount = _termLength * config.termUnit * config.discountPerTermUnit;
@@ -104,7 +157,7 @@ contract MintOption721 is Ownable, ReentrancyGuard {
     // Calculate the total cost of this purchase.
     uint256 totalCharge = price * _amount;
 
-    //
+    // If set, check sellable amount of items
     if( config.syncSupply ){
       if( _amount > sellableCount ){
         revert AmountGreaterThanRemaining();
@@ -135,14 +188,21 @@ contract MintOption721 is Ownable, ReentrancyGuard {
     uint256 _amount
   ) external payable nonReentrant {
     Config memory config = configs[_roundId];
-    if( config.basicPrice == 0 ){ revert ZeroPriceConfig(); }
+    // Make sure sale has started
+    if( config.startTime > block.timestamp){ revert SaleNotStarted(); }
 
+    // Make sure config isn't empty
+    if( config.basicPrice == 0 ){ revert ZeroBasicPriceConfig(); }
+    if( config.minPrice == 0 ){ revert ZeroMinPriceConfig(); }
+
+    // If set, check sellable amount of items
     if( config.syncSupply ){
       if( _amount > sellableCount ){
         revert AmountGreaterThanRemaining();
       }
       sellableCount -= _amount;
     }
+
     // Calculate the total cost of this purchase.
     uint256 totalCharge = config.basicPrice * _amount;
 

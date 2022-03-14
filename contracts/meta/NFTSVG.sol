@@ -26,31 +26,30 @@ library NFTSVG {
   }
 
   function _parseRemTime(uint256 _timestamp) private view returns (string memory remaining) {
-    (_timestamp > block.timestamp) ? (_timestamp - block.timestamp) / 3600 : 0;
-    uint256 remainingSec = 0;
-    uint256 remainingMin = 0;
-    uint256 remainingHour = 0;
-    uint256 remainingDay = 0;
+    uint256 remS;
+    uint256 remM;
+    uint256 remH;
+    uint256 remD;
 
     if(_timestamp > block.timestamp){
       uint256 diff = _timestamp - block.timestamp;
-      remainingSec = diff % 60;
-      diff = diff - remainingSec;
-      remainingMin = diff % 3600 / 60;
+      remS = diff % 60;
+      diff = diff - remS;
+      remM = diff % 3600 / 60;
       diff = diff - (diff % 3600);
-      remainingHour = diff % 86400 / 3600;
+      remH = diff % 86400 / 3600;
       diff = diff - diff % 86400;
-      remainingDay = diff / 86400;
+      remD = diff / 86400;
     }
 
     return string(abi.encodePacked(
-      remainingDay.toString(),
+      remD.toString(),
       'd ',
-      remainingHour.toString(),
+      remH.toString(),
       'h ',
-      remainingMin.toString(),
+      remM.toString(),
       'm ',
-      remainingSec.toString(),
+      remS.toString(),
       's '
     ));
   }

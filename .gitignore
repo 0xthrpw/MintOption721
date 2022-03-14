@@ -106,5 +106,7 @@ dist
 trees*
 artifacts/
 cache/
+coverage/
+coverage.json
 work/
 art/meta/

@@ -44,7 +44,6 @@ describe('/MOTG/ Mint Option Testing General', function () {
 
   // These are the constants for the mint locker contract.
 
-  const START_TIME = '0';
   const START_PRICE = '1';
   const REST_PRICE = '.001';
   const DISCOUNT_PER_TERM = '.01';
@@ -58,7 +57,7 @@ describe('/MOTG/ Mint Option Testing General', function () {
       CAP
     );
     await token721.deployed();
-console.log("token721", token721.address);
+
     option721 = await Option721.connect(deployer.signer).deploy(
       NAME,
       SYMBOL,
@@ -68,14 +67,6 @@ console.log("token721", token721.address);
     );
     await option721.deployed();
 
-    config = {
-      startTime: START_TIME,
-      basicPrice: ethers.utils.parseEther(START_PRICE),
-      minPrice: ethers.utils.parseEther(REST_PRICE),
-      discountPerTermUnit: ethers.utils.parseEther(DISCOUNT_PER_TERM),
-      termUnit: TERM_UNIT,
-      syncSupply: true
-    }
 
     mintOption721 = await MintOption721.connect(deployer.signer).deploy(
       token721.address,
@@ -84,11 +75,6 @@ console.log("token721", token721.address);
       CAP
     );
     await mintOption721.deployed();
-
-    await mintOption721.connect(deployer.signer).setConfig(0, config);
-
-    let configured = await mintOption721.configs(0);
-    console.log("config", configured);
 
     await token721.connect(deployer.signer).setAdmin(
       mintOption721.address,
@@ -101,8 +87,23 @@ console.log("token721", token721.address);
     );
   });
 
-  context('Basic configuration', async function() {
+  context('synced item supply', async function() {
+    beforeEach(async () => {
+      const blockNumAfter = await ethers.provider.getBlockNumber();
+      const blockAfter = await ethers.provider.getBlock(blockNumAfter);
+      const ts = blockAfter.timestamp;
 
+      config = {
+        startTime: ts,
+        basicPrice: ethers.utils.parseEther(START_PRICE),
+        minPrice: ethers.utils.parseEther(REST_PRICE),
+        discountPerTermUnit: ethers.utils.parseEther(DISCOUNT_PER_TERM),
+        termUnit: TERM_UNIT,
+        syncSupply: true
+      }
+      await mintOption721.connect(deployer.signer).setConfig(0, config);
+
+    });
 
     it('purchase option', async () => {
       ///early minter
@@ -115,7 +116,6 @@ console.log("token721", token721.address);
       const blockNumBefore = await ethers.provider.getBlockNumber();
       const block = await ethers.provider.getBlock(blockNumBefore);
       const now = block.timestamp;
-      console.log("now", now, termTime);
 
       let totalSpend = (config.basicPrice - discount) * amount;
 
@@ -141,10 +141,9 @@ console.log("token721", token721.address);
       const blockNumAfter = await ethers.provider.getBlockNumber();
       const blockAfter = await ethers.provider.getBlock(blockNumAfter);
       const after = blockAfter.timestamp;
-      console.log("after", after);
 
       const exerciseDate = await option721.exercisable(purchasedOptionId);
-console.log("exerciseDate", exerciseDate);
+
       //redeem exercisable token
       await option721.connect(deployer.signer).setApprovalForAll(mintOption721.address, true);
 
@@ -153,18 +152,18 @@ console.log("exerciseDate", exerciseDate);
       );
 
 
-      let metadata = await option721.tokenURI(1);
-      let data = metadata.substring(29);
-      let buff = new Buffer.from(data, 'base64');
-
-      console.log("metadata", buff.toString('ascii'));
-
-      let meta = JSON.parse(buff.toString('ascii'));
-      let imagedata = meta.image.substring(26);
-
-      console.log("imagedata", imagedata.toString('ascii'));
-      let imgbuffer = new Buffer.from(imagedata, 'base64');
-      fs.writeFileSync('art/token_gen.svg', imgbuffer);
+      // let metadata = await option721.tokenURI(1);
+      // let data = metadata.substring(29);
+      // let buff = new Buffer.from(data, 'base64');
+      //
+      // console.log("metadata", buff.toString('ascii'));
+      //
+      // let meta = JSON.parse(buff.toString('ascii'));
+      // let imagedata = meta.image.substring(26);
+      //
+      // console.log("imagedata", imagedata.toString('ascii'));
+      // let imgbuffer = new Buffer.from(imagedata, 'base64');
+      // fs.writeFileSync('art/token_gen.svg', imgbuffer);
 
     });
     it('puchase token at basic price', async () => {
@@ -177,6 +176,51 @@ console.log("exerciseDate", exerciseDate);
         amount, // amount
         { value: totalSpend.toString() }
       );
+
+    });
+
+    it('revert: not exercisable yet', async () => {
+      let amount = '1';
+      let termLength = '20';
+      let discount = termLength * config.discountPerTermUnit;
+      let totalSpend = (config.basicPrice - discount) * amount;
+      let purchase = await mintOption721.connect(deployer.signer).purchaseOption(
+        '0', // round id
+        termLength,
+        amount, // amount
+        { value: totalSpend.toString() }
+      );
+
+      let purchaseReceipt = await purchase.wait();
+      let purchasedOptionId = purchaseReceipt.events[0].topics[3];
+      await option721.connect(deployer.signer).setApprovalForAll(mintOption721.address, true);
+
+      await expect(
+        mintOption721.connect(deployer.signer).exerciseOption(purchasedOptionId)
+      ).to.be.revertedWith('NotExercisableYet');
+
+    });
+  });
+  context('un-synced item supply', async function() {
+    beforeEach(async () => {
+      const blockNumAfter = await ethers.provider.getBlockNumber();
+      const blockAfter = await ethers.provider.getBlock(blockNumAfter);
+      const ts = blockAfter.timestamp;
+
+      config = {
+        startTime: ts,
+        basicPrice: ethers.utils.parseEther(START_PRICE),
+        minPrice: ethers.utils.parseEther(REST_PRICE),
+        discountPerTermUnit: ethers.utils.parseEther(DISCOUNT_PER_TERM),
+        termUnit: TERM_UNIT,
+        syncSupply: false
+      }
+      await mintOption721.connect(deployer.signer).setConfig(0, config);
+
+    });
+
+    it('purchase option', async () => {
+      ///early minter
     });
   });
 });
