@@ -26,7 +26,7 @@ interface IOption721 {
 }
 
 interface IERC20 {
-  function safeTransfer( address _destination, uint256 _amount ) external;
+  function transfer( address _destination, uint256 _amount ) external;
 }
 
 /**
@@ -87,9 +87,6 @@ contract MintOption721 is Ownable, ReentrancyGuard {
   /// roundId > configuration struct
   mapping(uint256 => Config) public configs;
 
-  /// tokenId > claimed flag
-  mapping(uint256 => bool) public exercised;
-
   /**
     Construct a new instance of this contract.
 
@@ -144,7 +141,7 @@ contract MintOption721 is Ownable, ReentrancyGuard {
     if( config.minPrice == 0 ){ revert ZeroMinPriceConfig(); }
 
     // Calculate the option discount.
-    uint256 discount = _termLength * config.termUnit * config.discountPerTermUnit;
+    uint256 discount = _termLength * config.discountPerTermUnit;
 
     // Check if price has broken minimum price threshold.
     uint256 price = (config.minPrice + discount > config.basicPrice)
@@ -234,14 +231,6 @@ contract MintOption721 is Ownable, ReentrancyGuard {
       revert NotOptionOwner();
     }
 
-    // Check if the option has already been exercised.
-    if( exercised[_tokenId] ){
-      revert OptionAlreadyExercised();
-    }
-
-    // Mark the option as exercised.
-    exercised[_tokenId] = true;
-
     // Deactivate the option by sending it to its contract.
     IOption721(option).transferFrom(msg.sender, option, _tokenId);
 
@@ -284,7 +273,7 @@ contract MintOption721 is Ownable, ReentrancyGuard {
 
     // Otherwise, we should try to sweep an ERC-20 token.
     } else {
-      IERC20(_token).safeTransfer(_destination, _amount);
+      IERC20(_token).transfer(_destination, _amount);
     }
   }
 

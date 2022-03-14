@@ -40,7 +40,7 @@ describe('/MOTG/ Mint Option Testing General', function () {
   const NAME = 'LOCK ME';
   const SYMBOL = 'LOK';
   const METADATA_URI = '';
-  const CAP = 10000;
+  const CAP = 5;
 
   // These are the constants for the mint locker contract.
 
@@ -200,6 +200,152 @@ describe('/MOTG/ Mint Option Testing General', function () {
       ).to.be.revertedWith('NotExercisableYet');
 
     });
+
+    it('revert: not enough eth sent', async () => {
+      let amount = '1';
+      let termLength = '20';
+      let discount = termLength * config.discountPerTermUnit * 1.5;
+
+      let totalSpend = (config.basicPrice - discount) * amount;
+
+      await expect(
+        mintOption721.connect(deployer.signer).purchaseOption(
+         '0', // round id
+         termLength,
+         amount, // amount
+         { value: totalSpend.toString() }
+       )
+      ).to.be.revertedWith('CannotUnderpayForMint');
+
+      await expect(
+        mintOption721.connect(deployer.signer).purchaseToken(
+         '0', // round id
+         amount, // amount
+         { value: ethers.utils.parseEther(".9") }
+       )
+      ).to.be.revertedWith('CannotUnderpayForMint');
+    });
+
+
+    it('revert: oversold', async () => {
+      let amount = '4';
+      let termLength = '20';
+      let termTime = termLength * config.termUnit;
+      let discount = termLength * config.discountPerTermUnit;
+
+      let totalSpend = (config.basicPrice - discount) * amount;
+      let purchase = await mintOption721.connect(alice.signer).purchaseOption(
+        '0', // round id
+        termLength,
+        amount,
+        { value: totalSpend.toString() }
+      );
+
+      let purchaseReceipt = await purchase.wait();
+      let purchasedOptionId = purchaseReceipt.events[0].topics[3];
+      await option721.connect(alice.signer).setApprovalForAll(mintOption721.address, true);
+
+      const blockNumBefore = await ethers.provider.getBlockNumber();
+      const block = await ethers.provider.getBlock(blockNumBefore);
+      const now = block.timestamp;
+      await ethers.provider.send('evm_setNextBlockTimestamp', [
+        now + termTime
+      ]);
+      await ethers.provider.send('evm_mine');
+
+      await mintOption721.connect(alice.signer).exerciseOption(purchasedOptionId)
+
+      await expect(
+        mintOption721.connect(bob.signer).purchaseToken(
+          '0', // round id
+          amount, // amount
+          { value: (config.basicPrice * amount).toString() }
+        )
+      ).to.be.revertedWith('AmountGreaterThanRemaining');
+
+      await expect(
+        mintOption721.connect(bob.signer).purchaseOption(
+          '0', // round id
+          termLength,
+          amount,
+          { value: totalSpend.toString() }
+        )
+      ).to.be.revertedWith('AmountGreaterThanRemaining');
+    });
+
+    it('claims balance to receiver', async () => {
+      ///early minter
+      let amount = '1';
+      let totalSpend = config.basicPrice * amount;
+
+      let purchase = await mintOption721.connect(deployer.signer).purchaseToken(
+        '0', // round id
+        amount, // amount
+        { value: totalSpend.toString() }
+      );
+
+      let purchaseReceipt = await purchase.wait();
+      let purchasedOptionId = purchaseReceipt.events[0].topics[3];
+
+      // check balance of contract is worth 1 x price
+      let balance = await ethers.provider.getBalance(mintOption721.address);
+
+      expect(
+        balance.toString()
+      ).to.equal((amount * config.basicPrice).toString());
+
+      // send tokens to receiver
+      await mintOption721.connect(deployer.signer).claim();
+
+      // check balance of receiver is worth 1 x price
+      let receiverBalance = await ethers.provider.getBalance(mintOption721.address);
+
+      expect(
+        balance.toString()
+      ).to.equal(ethers.utils.parseEther(amount))
+
+    });
+
+    it('revert: sale not started', async () => {
+      const blockNumAfter = await ethers.provider.getBlockNumber();
+      const blockAfter = await ethers.provider.getBlock(blockNumAfter);
+      const ts = blockAfter.timestamp;
+
+      config = {
+        startTime: ts + 10,
+        basicPrice: ethers.utils.parseEther(START_PRICE),
+        minPrice: ethers.utils.parseEther(REST_PRICE),
+        discountPerTermUnit: ethers.utils.parseEther(DISCOUNT_PER_TERM),
+        termUnit: TERM_UNIT,
+        syncSupply: false
+      }
+      await mintOption721.connect(deployer.signer).setConfig(0, config);
+
+
+      let amount = '1';
+      let termLength = '20';
+      let discount = termLength * config.discountPerTermUnit;
+
+      let totalSpend = (config.basicPrice - discount) * amount;
+
+      await expect(
+        mintOption721.connect(deployer.signer).purchaseOption(
+         '0', // round id
+         termLength,
+         amount,
+         { value: totalSpend.toString() }
+        )
+      ).to.be.revertedWith('SaleNotStarted');
+
+
+      await expect(
+        mintOption721.connect(deployer.signer).purchaseToken(
+         '0', // round id
+         amount,
+         { value: totalSpend.toString() }
+        )
+      ).to.be.revertedWith('SaleNotStarted');
+    });
   });
   context('un-synced item supply', async function() {
     beforeEach(async () => {
@@ -219,8 +365,236 @@ describe('/MOTG/ Mint Option Testing General', function () {
 
     });
 
-    it('purchase option', async () => {
-      ///early minter
+    it('revert: not owner', async () => {
+      let amount = '1';
+      let termLength = '20';
+      let termTime = termLength * config.termUnit;
+      let discount = termLength * config.discountPerTermUnit;
+
+      let totalSpend = (config.basicPrice - discount) * amount;
+      let purchase = await mintOption721.connect(alice.signer).purchaseOption(
+        '0', // round id
+        termLength,
+        amount, // amount
+        { value: totalSpend.toString() }
+      );
+
+      let purchaseReceipt = await purchase.wait();
+      let purchasedOptionId = purchaseReceipt.events[0].topics[3];
+      await option721.connect(bob.signer).setApprovalForAll(mintOption721.address, true);
+
+      const blockNumBefore = await ethers.provider.getBlockNumber();
+      const block = await ethers.provider.getBlock(blockNumBefore);
+      const now = block.timestamp;
+      await ethers.provider.send('evm_setNextBlockTimestamp', [
+        now + termTime
+      ]);
+      await ethers.provider.send('evm_mine');
+
+      await expect(
+        mintOption721.connect(bob.signer).exerciseOption(purchasedOptionId)
+      ).to.be.revertedWith('NotOptionOwner');
+    });
+
+    it('revert: already exercised', async () => {
+      let amount = '1';
+      let termLength = '20';
+      let termTime = termLength * config.termUnit;
+      let discount = termLength * config.discountPerTermUnit;
+
+      let totalSpend = (config.basicPrice - discount) * amount;
+      let purchase = await mintOption721.connect(alice.signer).purchaseOption(
+        '0', // round id
+        termLength,
+        amount, // amount
+        { value: totalSpend.toString() }
+      );
+
+      let purchaseReceipt = await purchase.wait();
+      let purchasedOptionId = purchaseReceipt.events[0].topics[3];
+      await option721.connect(alice.signer).setApprovalForAll(mintOption721.address, true);
+
+      const blockNumBefore = await ethers.provider.getBlockNumber();
+      const block = await ethers.provider.getBlock(blockNumBefore);
+      let metadata = await option721.tokenURI(purchasedOptionId);
+      
+      const now = block.timestamp;
+      await ethers.provider.send('evm_setNextBlockTimestamp', [
+        now + termTime + 1000
+      ]);
+      await ethers.provider.send('evm_mine');
+
+      await mintOption721.connect(alice.signer).exerciseOption(purchasedOptionId)
+
+      let exercisedMetadata = await option721.tokenURI(purchasedOptionId);
+      await expect(
+        mintOption721.connect(alice.signer).exerciseOption(purchasedOptionId)
+      ).to.be.revertedWith('NotOptionOwner');
+
+      expect(
+         await option721.connect(alice.signer).ownerOf(purchasedOptionId)
+      ).to.equal(option721.address);
+    });
+
+
+    it('overpay and receive change', async () => {
+      let amount = '1';
+      let termLength = '20';
+      let termTime = termLength * config.termUnit;
+      let discount = termLength * config.discountPerTermUnit;
+
+      let aliceBalanceBefore = await ethers.provider.getBalance(alice.address);
+
+      let totalSpend = (config.basicPrice - discount) * amount;
+      let purchase = await mintOption721.connect(alice.signer).purchaseOption(
+        '0', // round id
+        termLength,
+        amount, // amount
+        { value: (totalSpend * 3).toString() }
+      );
+
+      let receipt = await purchase.wait();
+      let gasCost = receipt.gasUsed;
+      let gasFormatted = ethers.utils.formatUnits(gasCost.toString(), "gwei")
+      let aliceBalanceAfter = await ethers.provider.getBalance(alice.address);
+
+      expect(
+        aliceBalanceAfter.toString()
+      ).to.equal(aliceBalanceBefore.sub(totalSpend.toString()).sub(gasCost.toString()));
+
+      let purchaseToken = await mintOption721.connect(alice.signer).purchaseToken(
+        '0', // round id
+        amount,
+        { value: (totalSpend * 3).toString() }
+      );
+
+    });
+  });
+
+  context('bad configurations', async function() {
+
+    it('revert: zero basic price', async () => {
+      const blockNumAfter = await ethers.provider.getBlockNumber();
+      const blockAfter = await ethers.provider.getBlock(blockNumAfter);
+      const ts = blockAfter.timestamp;
+
+      config = {
+        startTime: ts,
+        basicPrice: 0,
+        minPrice: ethers.utils.parseEther(REST_PRICE),
+        discountPerTermUnit: 0,
+        termUnit: TERM_UNIT,
+        syncSupply: false
+      }
+      await mintOption721.connect(deployer.signer).setConfig(0, config);
+
+
+      let amount = '1';
+      let termLength = '20';
+      let discount = termLength * config.discountPerTermUnit;
+
+      let totalSpend = (config.basicPrice - discount) * amount;
+
+      await expect(
+        mintOption721.connect(deployer.signer).purchaseOption(
+         '0', // round id
+         termLength,
+         amount,
+         { value: totalSpend.toString() }
+        )
+      ).to.be.revertedWith('ZeroBasicPriceConfig');
+
+      await expect(
+        mintOption721.connect(deployer.signer).purchaseToken(
+         '0', // round id
+         amount,
+         { value: totalSpend.toString() }
+        )
+      ).to.be.revertedWith('ZeroBasicPriceConfig');
+
+      await expect(
+        mintOption721.connect(deployer.signer).purchaseToken(
+         '1', // round id
+         amount,
+         { value: totalSpend.toString() }
+        )
+      ).to.be.revertedWith('ZeroBasicPriceConfig');
+    });
+
+    it('revert: zero min price', async () => {
+      const blockNumAfter = await ethers.provider.getBlockNumber();
+      const blockAfter = await ethers.provider.getBlock(blockNumAfter);
+      const ts = blockAfter.timestamp;
+
+      config = {
+        startTime: ts,
+        basicPrice: ethers.utils.parseEther(START_PRICE),
+        minPrice: 0,
+        discountPerTermUnit: ethers.utils.parseEther(DISCOUNT_PER_TERM),
+        termUnit: TERM_UNIT,
+        syncSupply: false
+      }
+      await mintOption721.connect(deployer.signer).setConfig(0, config);
+
+
+      let amount = '1';
+      let termLength = '20';
+      let discount = termLength * config.discountPerTermUnit;
+
+      let totalSpend = (config.basicPrice - discount) * amount;
+
+      await expect(
+        mintOption721.connect(deployer.signer).purchaseOption(
+         '0', // round id
+         termLength,
+         amount,
+         { value: totalSpend.toString() }
+        )
+      ).to.be.revertedWith('ZeroMinPriceConfig');
+
+      await expect(
+        mintOption721.connect(deployer.signer).purchaseToken(
+         '0', // round id
+         amount,
+         { value: totalSpend.toString() }
+        )
+      ).to.be.revertedWith('ZeroMinPriceConfig');
+    });
+  });
+
+  context('sweeps', async function() {
+    it('sweep erc20 tokens', async () => {
+      let NotWETH = await ethers.getContractFactory("MockERC20");
+      let notWETH = await NotWETH.connect(deployer.signer).deploy(
+        'NotWETH',
+        'nwETH',
+        ethers.utils.parseEther("1000000")
+      );
+      await notWETH.deployed();
+
+      //transfer some 'royalties' to mintoption contract
+      let royaltiesAmount = "10"
+      await notWETH.connect(deployer.signer).transfer(
+        mintOption721.address,
+        ethers.utils.parseEther(royaltiesAmount)
+      );
+
+      let optContractERC20Balance = await notWETH.balanceOf(mintOption721.address);
+      expect(
+        optContractERC20Balance
+      ).to.equal(ethers.utils.parseEther(royaltiesAmount));
+
+      await mintOption721.connect(deployer.signer).sweep(
+        notWETH.address,
+        alice.address,
+        ethers.utils.parseEther(royaltiesAmount)
+      );
+
+      let aliceERC20Balance = await notWETH.balanceOf(alice.address);
+      expect(
+        aliceERC20Balance
+      ).to.equal(ethers.utils.parseEther(royaltiesAmount));
+
     });
   });
 });
