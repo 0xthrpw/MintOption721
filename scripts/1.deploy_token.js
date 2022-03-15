@@ -72,7 +72,7 @@ async function main() {
   );
   await mintOption721.deployed();
   console.log(`* mintOption721 deployed to: ${mintOption721.address}`);
-  console.log(`[$]: npx hardhat verify --network rinkeby ${mintOption721.address}  ${tiny721.address}  ${option721.address}  ${deployer.address} `);
+  console.log(`[$]: npx hardhat verify --network rinkeby ${mintOption721.address}  ${tiny721.address}  ${option721.address}  ${deployer.address} ${CAP}`);
 
   let config = {
     startTime: START_TIME,

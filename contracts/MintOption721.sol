@@ -125,7 +125,12 @@ contract MintOption721 is Ownable, ReentrancyGuard {
   }
 
   /**
+    Purchase and option token that can be redeemed to mint an item from this
+    contract once the exercise time is reached and the term is satisfied.
 
+    @param _roundId the index of the configuration for this round
+    @param _termLength the number of termUnits the user will wait before exercising
+    @param _amount the number of options the user is purchasing
   */
   function purchaseOption (
     uint256 _roundId,
@@ -178,7 +183,11 @@ contract MintOption721 is Ownable, ReentrancyGuard {
 
 
   /**
+    Purchase tokens without using the option system, this function will allow
+    a user to buy at this configuration's basicPrice.
 
+    @param _roundId the index of the configuration for this round
+    @param _amount the number of tokens the user is purchasing
   */
   function purchaseToken (
     uint256 _roundId,
@@ -218,7 +227,12 @@ contract MintOption721 is Ownable, ReentrancyGuard {
   }
 
   /**
+    Exercise an option token once the exercisable time is reached.  Once the
+    option is exercised, it is sent to the option contract itself.  This removes
+    it from circulation and allows for distinguishing between tokenIds that dont
+    exist yet from those that have been exercised.
 
+    @param _tokenId the ID of the option token being exercised
   */
   function exerciseOption ( uint256 _tokenId ) external nonReentrant {
     // Check the option's claimstamp.
