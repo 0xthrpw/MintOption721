@@ -27,11 +27,11 @@ A token sale is configured with these properties:
 
 **termUnit** - the unit of time a user must wait for the price to be reduced by discountPerTermLimit  
 
-**discountPerTermLimit** - the amount the price of the option decays over a single termUnit  
+**discountPerTermUnit** - the amount the price of the option decays over a single termUnit  
 
 **syncSupply** - whether to allow the number of item tokens to subceed the number of outstanding options  
 
-The price a user pays for an option is calculated as basicPrice - (termLength * termUnit * discountPerTermLimit) where termLength is the user's specified quantity of termUnits.  The item's price will be the configured minimumPrice if this calculation results in a price lower than minimumPrice.  
+The price a user pays for an option is calculated as `basicPrice - (termLength * discountPerTermUnit)` where termLength is the user's specified quantity of termUnits.  The item's price will be the configured minimumPrice if this calculation results in a price lower than minimumPrice.  
 
 
 ## Example  
