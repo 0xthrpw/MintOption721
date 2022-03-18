@@ -17,10 +17,10 @@ async function main() {
 
   // mint shop params
   const START_TIME = Math.floor(currentDate / 1000);
-  const BASIC_PRICE = '1';
-  const MIN_PRICE = '.01';
-  const DISCOUNT_PER_TERM = '.01';
-  const TERM_UNIT = '4000';
+  const BASIC_PRICE = '.05';
+  const MIN_PRICE =   '.0049999';
+  const DISCOUNT_PER_TERM = '.005';
+  const TERM_UNIT = '7200';
 
   const signers = await ethers.getSigners();
   const addresses = await Promise.all(signers.map(async signer => signer.getAddress()));
@@ -80,7 +80,7 @@ async function main() {
     minPrice: ethers.utils.parseEther(MIN_PRICE),
     discountPerTermUnit: ethers.utils.parseEther(DISCOUNT_PER_TERM),
     termUnit: TERM_UNIT,
-    syncSupply: true
+    syncSupply: false
   }
 
   let setConfig = await mintOption721.connect(deployer.signer).setConfig(0, config);

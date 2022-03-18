@@ -393,7 +393,7 @@ describe('/MOTG/ Mint Option Testing General', function () {
 
       await expect(
         mintOption721.connect(bob.signer).exerciseOption(purchasedOptionId)
-      ).to.be.revertedWith('NotOptionOwner');
+      ).to.be.revertedWith('TransferCallerNotOwnerNorApproved');
     });
 
     it('revert: already exercised', async () => {
@@ -417,7 +417,7 @@ describe('/MOTG/ Mint Option Testing General', function () {
       const blockNumBefore = await ethers.provider.getBlockNumber();
       const block = await ethers.provider.getBlock(blockNumBefore);
       let metadata = await option721.tokenURI(purchasedOptionId);
-      
+
       const now = block.timestamp;
       await ethers.provider.send('evm_setNextBlockTimestamp', [
         now + termTime + 1000
@@ -429,7 +429,7 @@ describe('/MOTG/ Mint Option Testing General', function () {
       let exercisedMetadata = await option721.tokenURI(purchasedOptionId);
       await expect(
         mintOption721.connect(alice.signer).exerciseOption(purchasedOptionId)
-      ).to.be.revertedWith('NotOptionOwner');
+      ).to.be.revertedWith('TransferCallerNotOwnerNorApproved');
 
       expect(
          await option721.connect(alice.signer).ownerOf(purchasedOptionId)

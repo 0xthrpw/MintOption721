@@ -234,15 +234,10 @@ contract MintOption721 is Ownable, ReentrancyGuard {
 
     @param _tokenId the ID of the option token being exercised
   */
-  function exerciseOption ( uint256 _tokenId ) external nonReentrant {
+  function exerciseOption ( uint256 _tokenId ) external  {
     // Check the option's claimstamp.
     if( IOption721(option).exercisable(_tokenId) > block.timestamp ){
       revert NotExercisableYet();
-    }
-
-    // Double check the option's ownership.
-    if( IOption721(option).ownerOf(_tokenId) != msg.sender ){
-      revert NotOptionOwner();
     }
 
     // Deactivate the option by sending it to its contract.
