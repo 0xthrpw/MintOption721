@@ -5,15 +5,15 @@ async function main() {
   const currentDate = new Date().getTime()
 
   // item collection params
-  const ITEM_COLLECTION_NAME = `Tiny721-${currentDate}`;
-  const METADATA_URI = 'https://ipfs.io/ipfs/QmYsu3FGSXYQ7pfcecdM91ULLmd9FNSE7AjFXhREJwbajY/';
-  const ITEM_SYMBOL = 'TINY721';
+  const ITEM_COLLECTION_NAME = `OpShop Test Items`;
+  const METADATA_URI = 'https://ipfs.io/ipfs/QmWH431LYwiFu57t1ru561t6fmTp36fNLqSb6XBrj7Snfk/';
+  const ITEM_SYMBOL = 'OPSHOP_ITEM';
   const CAP = '10000';
 
   // option params
   const OPT_COLLECTION_NAME = `OPTION DEMO - ${currentDate}`;
-  const OPT_SYMBOL = 'OPT721';
-  const OPT_DESC = 'Testing Mint Options';
+  const OPT_SYMBOL = 'OPT';
+  const OPT_DESC = 'Testing OpShop Option Minting';
 
   // mint shop params
   const START_TIME = Math.floor(currentDate / 1000);
@@ -63,16 +63,16 @@ async function main() {
   console.log(`* option721 deployed to: ${option721.address}`);
   console.log(`[$]: npx hardhat verify --network rinkeby ${option721.address} '${OPT_COLLECTION_NAME}' ${OPT_SYMBOL} '${OPT_DESC}' ${CAP} ${tiny721.address}`);
 
-  let MintOption721 = await ethers.getContractFactory("MintOption721");
-  let mintOption721 = await MintOption721.connect(deployer.signer).deploy(
+  let OpShop721 = await ethers.getContractFactory("OpShop721");
+  let opShop721 = await OpShop721.connect(deployer.signer).deploy(
     tiny721.address,
     option721.address,
     deployer.address,
     CAP
   );
-  await mintOption721.deployed();
-  console.log(`* mintOption721 deployed to: ${mintOption721.address}`);
-  console.log(`[$]: npx hardhat verify --network rinkeby ${mintOption721.address}  ${tiny721.address}  ${option721.address}  ${deployer.address} ${CAP}`);
+  await opShop721.deployed();
+  console.log(`* opShop721 deployed to: ${opShop721.address}`);
+  console.log(`[$]: npx hardhat verify --network rinkeby ${opShop721.address}  ${tiny721.address}  ${option721.address}  ${deployer.address} ${CAP}`);
 
   let config = {
     startTime: START_TIME,
@@ -83,12 +83,12 @@ async function main() {
     syncSupply: false
   }
 
-  let setConfig = await mintOption721.connect(deployer.signer).setConfig(0, config);
+  let setConfig = await opShop721.connect(deployer.signer).setConfig(0, config);
   await setConfig.wait();
-  console.log(`* mintOption721 config set`);
+  console.log(`* opShop721 config set`);
 
   let setItemAdmin = await tiny721.connect(deployer.signer).setAdmin(
-    mintOption721.address,
+    opShop721.address,
     true
   );
   await setItemAdmin.wait()
@@ -96,7 +96,7 @@ async function main() {
 
 
   let setOptionAdmin = await option721.connect(deployer.signer).setAdmin(
-    mintOption721.address,
+    opShop721.address,
     true
   );
   await setOptionAdmin.wait()

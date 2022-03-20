@@ -54,7 +54,7 @@ interface IERC20 {
 
   March 13th, 2022
 */
-contract MintOption721 is Ownable, ReentrancyGuard {
+contract OpShop721 is Ownable, ReentrancyGuard {
 
   address public paymentReceiver;
 

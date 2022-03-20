@@ -4,22 +4,14 @@ const fs = require('fs');
 const ethers = require('ethers');
 
 let groupIndex = 0;
-let supplyCap = 100;
+let supplyCap = 10000;
 for(let tokenIndex = 1; tokenIndex <= supplyCap; tokenIndex++){
-  // let prepTokenId = ethers.BigNumber.from(groupIndex).add(tokenIndex);
-  // let tokenId = ethers.utils.hexConcat(ethers.utils.zeroPad(prepTokenId, 8));
-
-  // let degeneracy = ["Lurking", "All In", "Veteran", "Rekt"];
-  // let species = ["Ape", "Sheep", "Snake", "Wolf"];
-  // let depth = ["Gone", "Hanging by a thread", "Still there", "Slipping away"];
-  // let conviction = ["Radical", "Flimsy", "Absent", "Solid"];
-
-  // let formattedID = ethers.BigNumber.from(tokenId.toString());
   let obj = {
     id:`${tokenIndex}`,
-    image:"ipfs://QmNNpHAsGon8T5DnY4x1iKSZj4QiKNQjafdACnKjMHeGmc",
-    external_url:"thrpw.eth.link",
-    description:`Get equipped with Item 1 `,
+    name:`OpShop Test Item ${tokenIndex}`,
+    image:"ipfs://QmXKHCtmHxdo1FLYH8UgMXVMQ2WazC8eY3wjEbmCnbTSuS",
+    external_url:"https://opshop.pages.dev",
+    description:`OpShop Test Item for Rinkeby Test Network`,
     attributes:[
       {
         trait_type:"ID",
@@ -28,8 +20,11 @@ for(let tokenIndex = 1; tokenIndex <= supplyCap; tokenIndex++){
         trait_type:"Index",
         value:tokenIndex
       },{
+        trait_type:"Network",
+        value:"Rinkeby"
+      },{
         display_type: "number",
-        trait_type: "Item",
+        trait_type: "Test Round",
         value: 1
       }
     ]

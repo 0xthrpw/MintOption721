@@ -61,7 +61,7 @@ library NFTSVG {
     bool exercised = (params.owner == address(this));
 
     svgPaths = string(abi.encodePacked(
-      '<rect width="480" height="480" x="0" y="0" fill="white"  /><rect width="480" height="480" x="0" y="0" fill="url(#back)"  /><rect fill="url(#p)" width="100%" height="100%"></rect><rect width="360" height="460" x="60" y="10" fill="black" opacity=".7" /><rect width="340" height="90" x="70" y="20" fill="black" opacity=".3" /><rect width="340" height="90" x="70" y="120" fill="black" opacity=".3" /><text x="80" y="40" font-family="monospace" fill="white" font-size="1.6em">Mint Option #',
+      '<rect width="480" height="480" x="0" y="0" fill="white"  /><rect width="480" height="480" x="0" y="0" fill="url(#back)"  /><rect fill="url(#p)" width="100%" height="100%"></rect><rect width="360" height="460" x="60" y="10" fill="black" opacity=".7" /><rect width="340" height="90" x="70" y="20" fill="black" opacity=".3" /><rect width="340" height="90" x="70" y="120" fill="black" opacity=".3" /><text x="80" y="40" font-family="monospace" fill="white" font-size="1.6em">OpShop Test Option #',
       params.tokenId.toString(),
       '</text>'
     ));
@@ -93,7 +93,7 @@ library NFTSVG {
 
     svgPaths = string(abi.encodePacked(
       svgPaths,
-      '<defs><linearGradient id="back" x1="100%" y1="100%"><stop offset="0%" stop-color="green" stop-opacity=".5"><animate attributeName="stop-color" values="green;blue;red;red;pink;red;red;purple;green" dur="60s" repeatCount="indefinite" /></stop><stop offset="100%" stop-color="lightblue" stop-opacity=".5"><animate attributeName="stop-color" values="orange;purple;purple;orange;purple;purple;blue;lightblue;orange" dur="60s" repeatCount="indefinite" /><animate attributeName="offset" values=".95;.80;.60;.40;.20;0;.20;.40;.60;.80;.95" dur="60s" repeatCount="indefinite" /></stop></linearGradient><pattern id="p" width="100" height="100" patternUnits="userSpaceOnUse" patternTransform="rotate(36) scale(0.03)"><path data-color="outline" fill="none" stroke="#000" stroke-width="10" d="M50 0v100M100 50H0"></path></pattern></defs>'
+      '<defs><linearGradient id="back" x1="100%" y1="100%"><stop offset="0%" stop-color="green" stop-opacity=".5"><animate attributeName="stop-color" values="white;green;gray;green;white;" dur="30s" repeatCount="indefinite" /></stop><stop offset="100%" stop-color="lightblue" stop-opacity=".5"><animate attributeName="stop-color" values="green;gray;white;gray;green" dur="30s" repeatCount="indefinite" /><animate attributeName="offset" values=".40;.60;.80;.60;.40;" dur="30s" repeatCount="indefinite" /></stop></linearGradient><pattern id="p" width="100" height="100" patternUnits="userSpaceOnUse" patternTransform="rotate(36) scale(0.03)"><path data-color="outline" fill="none" stroke="#000" stroke-width="10" d="M50 0v100M100 50H0"></path></pattern></defs>'
     ));
 
     return svgPaths;
