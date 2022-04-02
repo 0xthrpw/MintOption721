@@ -17,10 +17,10 @@ async function main() {
 
   // mint shop params
   const START_TIME = Math.floor(currentDate / 1000);
-  const BASIC_PRICE = '.05';
-  const MIN_PRICE =   '.0049999';
+  const BASIC_PRICE = '.1';
+  const MIN_PRICE =   '.029999';
   const DISCOUNT_PER_TERM = '.005';
-  const TERM_UNIT = '7200';
+  const TERM_UNIT = '86400';
 
   const signers = await ethers.getSigners();
   const addresses = await Promise.all(signers.map(async signer => signer.getAddress()));
