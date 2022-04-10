@@ -38,7 +38,7 @@ async function main() {
 
   await tiny721.deployed();
   console.log(`* tiny721 deployed to: ${tiny721.address}`);
-  console.log(`[$]: npx hardhat verify --network rinkeby ${tiny721.address} ${ITEM_COLLECTION_NAME} ${ITEM_SYMBOL} ${METADATA_URI} ${CAP} `);
+  console.log(`[$]: npx hardhat verify --network rinkeby ${tiny721.address} "${ITEM_COLLECTION_NAME}" ${ITEM_SYMBOL} ${METADATA_URI} ${CAP} `);
 
   // await tiny721.mint_Qgo(deployer.address, 20);
   // console.log(`* minted tokens to: ${deployer.address}`);
